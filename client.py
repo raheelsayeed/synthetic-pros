@@ -1,5 +1,10 @@
 #!/usr/bin/env python3 
 
+#--------------------------
+# Synthetic PRO Generator
+# Raheel Sayeed
+# -------------------------
+
 import base64, json, urllib.request, urllib.response
 from random import randint
 from configparser import ConfigParser
