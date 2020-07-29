@@ -5,18 +5,21 @@
 # Raheel Sayeed
 # -------------------------
 
-import base64, json, urllib.request, urllib.response, time
+import base64, json, urllib.request, urllib.response, time, os
 from random import randint
 from configparser import ConfigParser
 
-
+# Credentials
 config = ConfigParser() 
-config.read('credentials.txt') 
-
-
+config.read('credentials.ini') 
 endpoint = config.get('endpoint', 'demo')
 accessidentifier  = config.get('basic', 'identifier')
 accesssecret = config.get('basic', 'token')
+
+# Depression
+depression_fhirid = '96FE494D-F176-4EFB-A473-2AB406610626'
+answerlevel = 'severe'
+delay = 2    
 
 def write_to_file(json_data, filename):
     with open(filename, 'w') as output:
@@ -24,6 +27,12 @@ def write_to_file(json_data, filename):
         output.write(dumps)
         output.close()
 
+def create_dir(dirname):
+    try: 
+        os.system(f'rm -rf {dirname}')
+        os.mkdir(dirname)
+    except OSError:
+        print(f'could not create dir: {dirname}')
 
 class response_handler(object): 
 
@@ -40,15 +49,12 @@ class response_handler(object):
             return randint(1,3)
         if self.code == 'severe':
             return randint(2,4) 
+        if self.code == 'verysevere':
+            return randint(3,4)
         else:
             return -1
 
-    def answer_print(self):
-        print(f'{self.code}: {self.select_response()}')
-        print(self.select_response()) 
-
-
-
+   
 class adaptive_client(object): 
 
     # intializer
@@ -56,7 +62,6 @@ class adaptive_client(object):
         self.identifier = access_token
         self.secret = access_secret 
         self.base_url = endpoint
-        self.response_handler = response_handler("rand") 
         self.response_resource = None 
         self.question_serial = 0 
 
@@ -69,7 +74,6 @@ class adaptive_client(object):
         base64string = base64.b64encode(encoded)
         authstring = 'Basic %s' % base64string.decode() # utf_8
         url = urllib.parse.urljoin(self.base_url, endpoint)
-        print(url)
         req = self.request.Request(url)
         req.add_header("Authorization", authstring)
         req.add_header("Content-Type", "application/json; charset=utf-8")
@@ -119,7 +123,7 @@ class instrument_session(object):
         # auto response type
         self.answer_handler = resp_handler or response_handler('rand')
 
-    def select_answer_foritem(self, questionitem, answerlevel=None):
+    def select_answer_foritem(self, questionitem):
         subitems = questionitem['item']
         subitem = questionitem['item'][1]
         answerchoices = [choice['valueCoding'] for choice in subitem['answerOption']]
@@ -144,21 +148,18 @@ class instrument_session(object):
         response = self.client.next_q(self.questionnaire_id, empty_qr) 
         return response
 
-    def get_next_question(self, response, answerlevel=None):
+    def get_next_question(self, response):
 
         # Get Latest question item
         questionitems = response['contained'][0]['item']
         self.questions = len(questionitems)
-        print(f'number of questions: {self.questions}')
         self.serial += 1
-        print(f'serial: {self.serial}')
         newQuestionIndex = 0
         new_question = questionitems[newQuestionIndex]
 
         # Select new Answer
-        answer = self.select_answer_foritem(new_question, answerlevel)
+        answer = self.select_answer_foritem(new_question)
         response['item'].insert(0, answer) 
-        print(f'answers in response: {len(response["item"])}')
         return  self.client.next_q(self.questionnaire_id, response)
 
 
@@ -167,25 +168,25 @@ class instrument_session(object):
         
 if __name__ == '__main__':
     print("PROMIS Synthetic Generator")
+    print(f'Instrument: {depression_fhirid}')
+    answer_handler = response_handler(answerlevel)
+    print(f'synthesizing answer level: {answer_handler.code}')
+    create_dir(answerlevel)
+    print(f'Output director: {answerlevel}')
     ac = adaptive_client(accessidentifier, accesssecret) 
-    ac.response_handler.answer_print()
+    for i in range(1, 100):
 
-    # Depression
-    depression_fhirid = '96FE494D-F176-4EFB-A473-2AB406610626'
-    instrument = instrument_session(depression_fhirid, ac) 
-    questionnaireresponse = instrument.start_survey()
-    completed = False
-    while completed is not True:
-        time.sleep(3)
-
-         # Check if Survey completed
-        questionnaireresponse = instrument.get_next_question(questionnaireresponse, None)
-        status = questionnaireresponse['status']
-        print(status)
-        if status == 'completed':
-            completed = True
-            write_to_file(questionnaireresponse, 'QuestionnaireResponse.json')
-            print(json.dumps(questionnaireresponse, indent=4, sort_keys=False))
+        instrument = instrument_session(depression_fhirid, ac, answer_handler)
+        questionnaireresponse = instrument.start_survey()
+        completed = False
+        while completed is not True:
+            time.sleep(delay)
+            questionnaireresponse = instrument.get_next_question(questionnaireresponse)
+            status = questionnaireresponse['status']
+            if status == 'completed':
+                os.system('echo -n .')
+                completed = True
+                write_to_file(questionnaireresponse, f'{answerlevel}/{i}_QuestionnaireResponse.json')
 
 
     
