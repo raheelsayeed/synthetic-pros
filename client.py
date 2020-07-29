@@ -5,7 +5,7 @@
 # Raheel Sayeed
 # -------------------------
 
-import base64, json, urllib.request, urllib.response
+import base64, json, urllib.request, urllib.response, time
 from random import randint
 from configparser import ConfigParser
 
@@ -83,6 +83,13 @@ class adaptive_client(object):
             return None
 
 
+    def next_q(self, questionnaire_id, post_data=None):
+        return self.perform_request(f'Questionnaire/{questionnaire_id}/next-q', postData=post_data)
+
+
+
+
+
 class empty_questionnaireresponse:
 
     @staticmethod
@@ -104,22 +111,51 @@ class instrument_session(object):
         #  total number of questions
         self.quesitons = 0
 
-
-
-    def begin_session(self, answerlevel=None):
-        make_request = self.client.perform_request(f'Questionnaire/{self.questionnaire_id}/next-q', empty_questionnaireresponse.new('empty_questionnaireresponse.json'))
-        d = len(make_request['contained'])
+    def select_answer_foritem(self, questionitem, answerlevel=None):
+        subitems = questionitem['item']
+        subitem = questionitem['item'][1]
+        answer_item = {
+                "linkId": questionitem['linkId'],
+                "item": [{
+                    "linkId": subitem['linkId'],
+                    "text": subitem['text'],
+                    "answer": [
+                            {
+                                "valueCoding" : {
+                                    "system": "http://loinc.org",
+                                    "code": "LA10044-8",
+                                    "display": "Often"
+                                }
+                            }
+                        ]
+                    }],
+                "extension": questionitem['extension']
+                }
+        return answer_item
         
-        new_question = make_request['contained'][0]['date']
-        print(d)
-        print(new_question)
+    def start_survey(self):
+        empty_qr = empty_questionnaireresponse.new('empty_questionnaireresponse.json')
+        response = self.client.next_q(self.questionnaire_id, empty_qr) 
+        return response
+
+    def get_next_question(self, response, answerlevel=None):
+
+        # Get Latest question item
+        questionitems = response['contained'][0]['item']
+        self.questions = len(questionitems)
+        print(f'number of questions: {self.questions}')
+        self.serial += 1
+        print(f'serial: {self.serial}')
+        newQuestionIndex = 0
+        new_question = questionitems[newQuestionIndex]
+
+        # Select new Answer
+        answer = self.select_answer_foritem(new_question, answerlevel)
+        response['item'].insert(0, answer) 
+        print(f'answers in response: {len(response["item"])}')
+        return  self.client.next_q(self.questionnaire_id, response)
 
         
-        
-                
-
-   
-
 if __name__ == '__main__':
     print("PROMIS Synthetic Generator")
     ac = adaptive_client(accessidentifier, accesssecret) 
@@ -128,6 +164,17 @@ if __name__ == '__main__':
     # Depression
     depression_fhirid = '96FE494D-F176-4EFB-A473-2AB406610626'
     instrument = instrument_session(depression_fhirid, ac) 
-    instrument.begin_session()
+    questionnaireresponse = instrument.start_survey()
+    completed = False
+    while completed is not True:
+        time.sleep(5)
+         # Check if Survey completed
+        questionnaireresponse = instrument.get_next_question(questionnaireresponse, None)
+        status = questionnaireresponse['status']
+        print(status)
+        if status == 'completed':
+            completed = True
+            print(json.dumps(questionnaireresponse, indent=4, sort_keys=False))
+
+
     
-    # print(empty_questionnaireresponse.new('empty_questionnaireresponse.json'))
