@@ -18,6 +18,11 @@ endpoint = config.get('endpoint', 'demo')
 accessidentifier  = config.get('basic', 'identifier')
 accesssecret = config.get('basic', 'token')
 
+def write_to_file(json_data, filename):
+    with open(filename, 'w') as output:
+        dumps = json.dumps(json_data, sort_keys=False, indent=4)
+        output.write(dumps)
+        output.close()
 
 
 class response_handler(object): 
@@ -100,7 +105,7 @@ class empty_questionnaireresponse:
 
 class instrument_session(object):
 
-    def __init__(self, questionnaire_fhir_id, client=adaptive_client):
+    def __init__(self, questionnaire_fhir_id, client=adaptive_client, resp_handler=None):
 
         # Client to make and reeive calls
         self.client = client
@@ -111,9 +116,14 @@ class instrument_session(object):
         #  total number of questions
         self.quesitons = 0
 
+        # auto response type
+        self.answer_handler = resp_handler or response_handler('rand')
+
     def select_answer_foritem(self, questionitem, answerlevel=None):
         subitems = questionitem['item']
         subitem = questionitem['item'][1]
+        answerchoices = [choice['valueCoding'] for choice in subitem['answerOption']]
+        selected_choice = answerchoices[self.answer_handler.select_response()]
         answer_item = {
                 "linkId": questionitem['linkId'],
                 "item": [{
@@ -121,11 +131,7 @@ class instrument_session(object):
                     "text": subitem['text'],
                     "answer": [
                             {
-                                "valueCoding" : {
-                                    "system": "http://loinc.org",
-                                    "code": "LA10044-8",
-                                    "display": "Often"
-                                }
+                                "valueCoding" : selected_choice
                             }
                         ]
                     }],
@@ -155,6 +161,9 @@ class instrument_session(object):
         print(f'answers in response: {len(response["item"])}')
         return  self.client.next_q(self.questionnaire_id, response)
 
+
+
+
         
 if __name__ == '__main__':
     print("PROMIS Synthetic Generator")
@@ -167,13 +176,15 @@ if __name__ == '__main__':
     questionnaireresponse = instrument.start_survey()
     completed = False
     while completed is not True:
-        time.sleep(5)
+        time.sleep(3)
+
          # Check if Survey completed
         questionnaireresponse = instrument.get_next_question(questionnaireresponse, None)
         status = questionnaireresponse['status']
         print(status)
         if status == 'completed':
             completed = True
+            write_to_file(questionnaireresponse, 'QuestionnaireResponse.json')
             print(json.dumps(questionnaireresponse, indent=4, sort_keys=False))
 
 
