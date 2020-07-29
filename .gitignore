@@ -8,3 +8,7 @@ credentials.ini
 
 
 output
+severe/
+mild/
+moderate/
+verysevere/
