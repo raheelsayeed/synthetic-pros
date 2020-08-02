@@ -6,8 +6,7 @@
 # -------------------------
 
 
-import base64, json, urllib.request, urllib.response, time, os, calendar, random, csv
-from configparser import ConfigParser
+import json, time, os, calendar, random, csv
 
 
 def randomdate(_year, month):
@@ -43,10 +42,6 @@ def organizefiles(dirname):
 
 
 
-# Get a list of patients references
-def open_patient_file(patientfilename): 
-    with open(patientfilename, 'r') as pfile:
-        pass
 
 def patients_csv():
     with open('output/p16-18.csv', newline='') as csvfile:
