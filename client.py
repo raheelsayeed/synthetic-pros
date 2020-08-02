@@ -18,8 +18,8 @@ accesssecret = config.get('basic', 'token')
 
 # Depression
 depression_fhirid = '96FE494D-F176-4EFB-A473-2AB406610626'
-answerlevel = 'severe'
-delay = 2    
+answerlevel = 'verysevere'
+delay = 10    
 
 def write_to_file(json_data, filename):
     with open(filename, 'w') as output:
@@ -37,10 +37,7 @@ def create_dir(dirname):
 class response_handler(object): 
 
     def __init__(self, code):
-        if code == 'rand':
-            self.code = ['mild', 'moderate', 'severe'][randint(0,2)] 
-        else:
-            self.code = code 
+        self.code = code 
    
     def select_response(self):
         if self.code == 'mild':
@@ -51,6 +48,10 @@ class response_handler(object):
             return randint(2,4) 
         if self.code == 'verysevere':
             return randint(3,4)
+        if self.code == 'normal':
+            return 0
+        if self.code == 'absolute':
+            return 4
         else:
             return -1
 
@@ -186,7 +187,7 @@ if __name__ == '__main__':
             if status == 'completed':
                 os.system('echo -n .')
                 completed = True
-                write_to_file(questionnaireresponse, f'{answerlevel}/{i}_QuestionnaireResponse.json')
+                write_to_file(questionnaireresponse, f'{answerlevel}/{i}_{answerlevel}_QuestionnaireResponse.json')
 
 
     
