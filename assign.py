@@ -78,8 +78,9 @@ def get_responses(categories):
     return filenames
 # ---------------------------------------------------
 
-def assign(q_responses, patient_id, authored_month):
+def assign(q_responses, patient_id, authored_month, year, outputdirectory):
     qr = random.choice(q_responses)
+    head, filename = os.path.split(qr)
     json_dict = None
     with open(f'output/{qr}') as json_data:
         json_dict = json.load(json_data)
@@ -89,48 +90,38 @@ def assign(q_responses, patient_id, authored_month):
     #assign to questionnaire response
     json_dict['subject'] = f'Patient/{patient_id}'
     json_dict['authored'] = str(randomdate(year, authored_month))
-    outputfilepath = f'{outputdir}/{qr}'
+    outputfilepath = f'{outputdirectory}/{year}/{filename}'
     write_to_file(json_dict, outputfilepath)
     return outputfilepath
 
+def synthesize_for(patient_csv_instance, year, mild_percentage, range_responses_permonth, outputdirectory):
 
-if __name__ == '__main__':
-
-    # output directory 
- 
-    year = 2018
-    mild_percentage = 0.8
-    outputdir = 'final_output'
-    range_of_responses_per_month = random.randint(4,5)
-
-    create_dir(outputdir)
-    create_dir(f'{outputdir}/mild')
-    create_dir(f'{outputdir}/severe')
-    create_dir(f'{outputdir}/moderate')
-    create_dir(f'{outputdir}/verysevere')
+    create_dir(outputdirectory)
+    create_dir(f'{outputdirectory}/{year}')
     
     # patient lists
-    pts = patients_csv()
-    pts.remove('fhirid')
+    pts = patient_csv_instance
+    try:
+        pts.remove('fhirid')
+    except:
+        pass
 
     # number of patients
     pt_count = len(pts) 
     print(f'Number of patients: {pt_count}')
     
     # assessments each month range for one year
-
     total_number_of_responses = 0
     for _month in range(1,13):
-
-        
-        monthly_assessments = range_of_responses_per_month
+   
+        monthly_assessments = random.randrange(range_responses_permonth[0], range_responses_permonth[1])
         mild_count = round(monthly_assessments *  mild_percentage)
         severe_count = monthly_assessments - mild_count
         mild_responses = get_responses(['mild'])
         severe_responses = get_responses(['severe', 'verysevere'])
         moderate_responses = get_responses(['moderate', 'severe'])
         
-        print(f'Month: {_month}, ({monthly_assessments}) Mild: {mild_count}, Severe: {severe_count}')
+        print(f'Month: {_month}, (Count: {monthly_assessments}) Mild: {mild_count}, Severe: {severe_count}')
 
         
         # round 1  
@@ -139,7 +130,7 @@ if __name__ == '__main__':
  
             pt = random.choice(pts)
             pts.remove(pt)
-            assign(mild_responses, pt, _month)
+            assign(mild_responses, pt, _month, year, outputdir)
             total_number_of_responses += 1
         
         # moderate / severe
@@ -147,16 +138,41 @@ if __name__ == '__main__':
 
             pt = random.choice(pts)
             pts.remove(pt)
-            assign(severe_responses, pt, _month)
+            assign(severe_responses, pt, _month, year, outputdir)
             total_number_of_responses += 1
             
             next_month = random.randint(1, 3)
-            assign(moderate_responses, pt, next_month)
+            assign(moderate_responses, pt, next_month, year,  outputdir)
             total_number_of_responses += 1
     
 
     print(f'Operation completed, New QRs assigned: {total_number_of_responses}')
 
+
+if __name__ == '__main__':
+
+    # output directory 
+ 
+    year = 2018
+    mild_percentage = 0.8
+    outputdir = 'final_output2'
+    range_responses_permonth = (4,6)
+
+    create_dir(outputdir)
+    create_dir(f'{outputdir}/{year}')
+    
+    # patient lists
+    pts = patients_csv()
+
+    # number of patients
+    pt_count = len(pts) 
+    print(f'Number of patients: {pt_count}')
+    
+    # assessments each month range for one year
+    total_number_of_responses = 0
+    for year in [2017, 2018]:
+        print(f'************** {year} ****************')
+        synthesize_for(patients_csv(), year, mild_percentage, range_responses_permonth, outputdir)
     
 
 
