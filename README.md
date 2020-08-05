@@ -8,7 +8,8 @@ One of the ways to generate synethic PROs would be to dynamically synthesize FHI
 
 1. create a REST client with basic auth settings. Those settings should be ina  credential.ini file.
 
-2. Setting in `client.py` ->   
+2. Change settings in `client.py`:
+    - `user_inputmode = True`
 
 2. create model class to send and receive JSON resources (FHIR resources) 
 
