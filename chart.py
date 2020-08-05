@@ -27,15 +27,17 @@ def getListOfFiles(dirName):
     return allFiles       
 
 if __name__ == '__main__':
-    files = getListOfFiles('final_output')
+    files = getListOfFiles('final_output2')
+    try:
+         files.remove('final_output2/.DS_Store')
+    except:
+         pass
     resources = []
     for ff in files:
-        if ff == 'final_output/.DS_Store':
-            continue
         with open (ff, 'r') as json_data:
-            resource = json.load(json_data)
-            resources.append(resource)
-            json_data.close()
+             resource = json.load(json_data)
+             resources.append(resource)
+             json_data.close()
     
     monthlabels = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
              'August', 'September', 'October', 'November', 'December']
@@ -44,18 +46,13 @@ if __name__ == '__main__':
 
     vector = {'dates': dates, 'scores': scores}
     df = pandas.DataFrame(vector, columns = ['dates', 'scores'])
-    months = df.groupby(df['dates'].dt.strftime('%m'))['scores'].mean()
+    months = df.groupby(df['dates'].dt.strftime('%m-%Y'))['scores'].mean()
 
-    print(df)
+    print(months)
     months.plot.line(x="Year", title="Synthesized PROs", ylim=(10, 90))
-    # TODO
-    # sort by scores and group by months
-    # chart
+    
     plt.show()
     
-    import plotly.graph_objects as go
 
 
-    month = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
-             'August', 'September', 'October', 'November', 'December']
     

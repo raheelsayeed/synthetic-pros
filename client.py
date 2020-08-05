@@ -19,7 +19,11 @@ accesssecret = config.get('basic', 'token')
 # Depression
 depression_fhirid = '96FE494D-F176-4EFB-A473-2AB406610626'
 answerlevel = 'verysevere'
-delay = 10    
+
+# settings
+delay = 1
+user_inputmode = True
+output_directory = 'fhir_resources'
 
 def write_to_file(json_data, filename):
     with open(filename, 'w') as output:
@@ -128,7 +132,14 @@ class instrument_session(object):
         subitems = questionitem['item']
         subitem = questionitem['item'][1]
         answerchoices = [choice['valueCoding'] for choice in subitem['answerOption']]
-        selected_choice = answerchoices[self.answer_handler.select_response()]
+        if not user_inputmode:
+            selected_choice = answerchoices[self.answer_handler.select_response()]
+        else:
+            displaychoices = [f'{answerchoice["display"]}({answerchoice["code"]})' for answerchoice in answerchoices]
+            print(displaychoices)
+            inputchoice = input("Response (should be between 0-4): ")
+            selected_choice = answerchoices[int(inputchoice)]
+
         answer_item = {
                 "linkId": questionitem['linkId'],
                 "item": [{
@@ -172,10 +183,12 @@ if __name__ == '__main__':
     print(f'Instrument: {depression_fhirid}')
     answer_handler = response_handler(answerlevel)
     print(f'synthesizing answer level: {answer_handler.code}')
-    create_dir(answerlevel)
-    print(f'Output director: {answerlevel}')
+    create_dir(output_directory)
+    print(f'Output director: {output_directory}')
     ac = adaptive_client(accessidentifier, accesssecret) 
-    for i in range(1, 100):
+
+    max_sessions = 2 if user_inputmode else 100
+    for i in range(1, max_sessions):
 
         instrument = instrument_session(depression_fhirid, ac, answer_handler)
         questionnaireresponse = instrument.start_survey()
@@ -187,7 +200,7 @@ if __name__ == '__main__':
             if status == 'completed':
                 os.system('echo -n .')
                 completed = True
-                write_to_file(questionnaireresponse, f'{answerlevel}/{i}_{answerlevel}_QuestionnaireResponse.json')
+                write_to_file(questionnaireresponse, f'{output_directory}/{i}_{answerlevel}_QuestionnaireResponse.json')
 
 
     

@@ -91,14 +91,12 @@ def assign(q_responses, patient_id, authored_month, year, outputdirectory):
     json_dict['subject'] = f'Patient/{patient_id}'
     json_dict['authored'] = str(randomdate(year, authored_month))
     outputfilepath = f'{outputdirectory}/{year}/{filename}'
+    print(outputfilepath)
     write_to_file(json_dict, outputfilepath)
     return outputfilepath
 
 def synthesize_for(patient_csv_instance, year, mild_percentage, range_responses_permonth, outputdirectory):
 
-    create_dir(outputdirectory)
-    create_dir(f'{outputdirectory}/{year}')
-    
     # patient lists
     pts = patient_csv_instance
     try:
@@ -153,13 +151,11 @@ if __name__ == '__main__':
 
     # output directory 
  
-    year = 2018
     mild_percentage = 0.8
     outputdir = 'final_output2'
     range_responses_permonth = (4,6)
 
     create_dir(outputdir)
-    create_dir(f'{outputdir}/{year}')
     
     # patient lists
     pts = patients_csv()
@@ -170,9 +166,10 @@ if __name__ == '__main__':
     
     # assessments each month range for one year
     total_number_of_responses = 0
-    for year in [2017, 2018]:
+    for year in [2016, 2017]:
         print(f'************** {year} ****************')
-        synthesize_for(patients_csv(), year, mild_percentage, range_responses_permonth, outputdir)
+        create_dir(f'{outputdir}/{year}')
+        synthesize_for(patients_csv(), year, mild_percentage, range_responses_permonth, f'{outputdir}/{year}')
     
 
 
